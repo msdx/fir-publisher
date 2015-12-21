@@ -13,7 +13,7 @@ Fir Publisher
 ```
 buildscript {
     repositories {
-        maven { url 'https://dl.bintray.com/msdx/maven'}
+        jcenter()
     }
     dependencies {
         classpath 'com.githang:fir:0.1'
@@ -41,3 +41,9 @@ fir {
 - `firApk`:上传apk
 - `firIcon`: 上传图标，进行配置
 - `firAll`: 上传图标以及apk
+
+## 捐赠支持
+
+如果你觉得 fir-publisher 对你有所帮助, 欢迎微信打赏支持作者:smile:
+
+![](http://7xpdix.com1.z0.glb.clouddn.com/wechat.png)
