@@ -1,0 +1,10 @@
+apply plugin: 'groovy'
+repositories {
+    mavenCentral()
+}
+dependencies {
+    compile gradleApi()
+    compile localGroovy()
+    compile 'org.apache.httpcomponents:httpcore:4.2.2'
+    compile 'org.apache.httpcomponents:httpclient:4.2.2'
+}
