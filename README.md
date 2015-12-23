@@ -16,7 +16,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.githang:fir:0.1'
+        classpath 'com.githang:fir:0.1.1'
     }
 }
 ```
@@ -33,6 +33,7 @@ fir {
     flavor "Test" （如果没有，可不配置此项），仅在上传apk时需要
     appName 你的应用名称，仅在上传apk时需要
     icon 应用图标路径，仅在上传图标时需要
+    changeLog "更新日志" // 或者file("日志文件路径")
 }
 ```
 

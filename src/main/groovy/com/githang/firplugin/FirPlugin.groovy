@@ -54,7 +54,8 @@ class FirPlugin implements Plugin<Project> {
                 throw new ProjectConfigurationException("Please config fir.appName")
             }
 
-            if (uploadApk(cert.cert.binary, apk, fir.appName, config)) {
+            String changeLog = fir.changeLog == null ? "" : fir.changeLog
+            if (uploadApk(cert.cert.binary, apk, fir.appName, config, changeLog)) {
                 println "Publish Successful ^_^"
             } else {
                 println "Publish Failed!!"
@@ -104,13 +105,14 @@ class FirPlugin implements Plugin<Project> {
         return new JsonSlurper().parseText(response).is_completed
     }
 
-    static boolean uploadApk(def cert, def apkPath, def name, def config) {
-        def params = [key        : cert.key,
-                      token      : cert.token,
-                      file       : new File(apkPath),
-                      "x:name"   : name,
-                      "x:version": config.versionName,
-                      "x:build"  : config.versionCode
+    static boolean uploadApk(def cert, def apkPath, def name, def config, def changeLog) {
+        def params = [key          : cert.key,
+                      token        : cert.token,
+                      file         : new File(apkPath),
+                      "x:name"     : name,
+                      "x:version"  : config.versionName,
+                      "x:build"    : config.versionCode,
+                      "x:changelog": changeLog
         ]
         String response = uploadFile(cert.upload_url, params)
         return new JsonSlurper().parseText(response).is_completed
@@ -146,4 +148,17 @@ class FirPluginExtension {
     String icon
     String flavor = ""
     String appName
+    String changeLog
+
+    void changeLog(File file) {
+        if (file != null && file.exists()) {
+            changeLog = file.text
+        } else {
+            println "changeLog [$file] was null or not exist"
+        }
+    }
+
+    void changeLog(String log) {
+        changeLog = log
+    }
 }
