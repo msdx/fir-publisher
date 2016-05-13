@@ -86,7 +86,7 @@ class FirPlugin implements Plugin<Project> {
     static String getApkFile(String flavor, def project) {
         def apk = null
         project.android.applicationVariants.all { variant ->
-            if ((variant.name).equals((flavor ?: "") + "Release")) {
+            if ((variant.name).equals(flavor ? (flavor + "Release") : "release")) {
                 variant.outputs.each { output ->
                     apk = output.outputFile
                 }
