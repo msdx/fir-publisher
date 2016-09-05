@@ -56,9 +56,9 @@ class FirPlugin implements Plugin<Project> {
 
             String changeLog = fir.changeLog == null ? "" : fir.changeLog
             if (uploadApk(cert.cert.binary, apk, fir.appName, config, changeLog)) {
-                println "Publish Successful ^_^"
+                println "Publish apk Successful ^_^"
             } else {
-                println "Publish Failed!!"
+                println "Publish apk Failed!!"
             }
         }
 
@@ -69,8 +69,7 @@ class FirPlugin implements Plugin<Project> {
             firCert.dependsOn taskName
             firIcon.dependsOn firCert
             firApk.dependsOn firCert
-            firAll.dependsOn firIcon
-            firAll.dependsOn firApk
+            firAll.dependsOn firIcon, firApk
         }
     }
 
@@ -99,7 +98,7 @@ class FirPlugin implements Plugin<Project> {
         def params = [
                 "key"  : cert.key,
                 "token": cert.token,
-                "file" : iconPath
+                "file" : new File(iconPath)
         ]
         def response = uploadFile(cert.upload_url, params)
         return new JsonSlurper().parseText(response).is_completed
