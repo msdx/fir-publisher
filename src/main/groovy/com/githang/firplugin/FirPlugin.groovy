@@ -24,8 +24,6 @@ class FirPlugin implements Plugin<Project> {
 
         def firCert = target.tasks.create(name: "firCert") << {
             def fir = target.fir
-            println "API_TOKEN:${fir.apiToken}"
-            println "BUNDLE_ID:${fir.bundleId}"
             if (fir.bundleId == null || fir.apiToken == null) {
                 throw new ProjectConfigurationException("Please config bundleId and apiToken in fir")
             }
