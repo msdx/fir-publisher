@@ -32,6 +32,8 @@ public class SimpleMultipartEntity implements HttpEntity {
      */
     private String boundary;
 
+    private String charset = "UTF-8";
+
     public SimpleMultipartEntity() {
         out = new ByteArrayOutputStream();
         boundary = generateBoundary();
@@ -55,7 +57,7 @@ public class SimpleMultipartEntity implements HttpEntity {
     public void writeFirstBoundaryIfNeeds() {
         if (!isSetFirst) {
             try {
-                out.write(("--" + boundary + "\r\n").getBytes());
+                out.write(("--" + boundary + "\r\n").getBytes(charset));
             } catch (final IOException e) {
                 e.printStackTrace()
             }
@@ -66,7 +68,7 @@ public class SimpleMultipartEntity implements HttpEntity {
     public void writeLastBoundaryIfNeeds() {
         if (!isSetLast) {
             try {
-                out.write(("\r\n--" + boundary + "--\r\n").getBytes());
+                out.write(("\r\n--" + boundary + "--\r\n").getBytes(charset));
             } catch (final IOException e) {
                 e.printStackTrace()
             }
@@ -77,9 +79,9 @@ public class SimpleMultipartEntity implements HttpEntity {
     public void addPart(final String key, final String value) {
         writeFirstBoundaryIfNeeds();
         try {
-            out.write(("Content-Disposition: form-data; name=\"" + key + "\"\r\n\r\n").getBytes());
-            out.write(value.getBytes());
-            out.write(("\r\n--" + boundary + "\r\n").getBytes());
+            out.write(("Content-Disposition: form-data; name=\"" + key + "\"\r\n\r\n").getBytes(charset));
+            out.write(value.getBytes(charset));
+            out.write(("\r\n--" + boundary + "\r\n").getBytes(charset));
         } catch (final IOException e) {
             e.printStackTrace();
         }
@@ -96,9 +98,9 @@ public class SimpleMultipartEntity implements HttpEntity {
         try {
             type = "Content-Type: " + type + "\r\n";
             out.write(("Content-Disposition: form-data; name=\"" + key + "\"; filename=\""
-                    + fileName + "\"\r\n").getBytes());
-            out.write(type.getBytes());
-            out.write("Content-Transfer-Encoding: binary\r\n\r\n".getBytes());
+                    + fileName + "\"\r\n").getBytes(charset));
+            out.write(type.getBytes(charset));
+            out.write("Content-Transfer-Encoding: binary\r\n\r\n".getBytes(charset));
 
             final byte[] tmp = new byte[4096];
             int l = 0;
@@ -106,7 +108,7 @@ public class SimpleMultipartEntity implements HttpEntity {
                 out.write(tmp, 0, l);
             }
             if (!isLast)
-                out.write(("\r\n--" + boundary + "\r\n").getBytes());
+                out.write(("\r\n--" + boundary + "\r\n").getBytes(charset));
             out.flush();
         } catch (final IOException e) {
             e.printStackTrace();
