@@ -7,6 +7,7 @@ import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.DefaultHttpClient
 import org.apache.http.util.EntityUtils
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.ProjectConfigurationException
@@ -15,60 +16,84 @@ class FirPlugin implements Plugin<Project> {
 
     @Override
     void apply(Project target) {
-
         target.extensions.create("fir", FirPluginExtension)
 
-        def config = target.android.defaultConfig
-
-        def cert;
-
-        def firCert = target.tasks.create(name: "firCert") << {
-            def fir = target.fir
-            if (fir.bundleId == null || fir.apiToken == null) {
-                throw new ProjectConfigurationException("Please config bundleId and apiToken in fir")
+        def fir = target.extensions.findByName("fir") as FirPluginExtension
+        target.afterEvaluate {
+            if (!fir.upload) {
+                println "skip fir upload"
+                return
             }
-            //获取上传凭证
-            cert = getCert(fir.bundleId, fir.apiToken)
+
+            if (!target.plugins.hasPlugin("com.android.application")) {
+                throw new RuntimeException("FirPlugin can only be applied for android application module.")
+            }
+
+            if (target.android.productFlavors.size() > 0) {
+                boolean hasTaskAdded = false;
+                target.android.productFlavors.each {
+                    if (injectFirTask(target, it.name, fir)) {
+                        hasTaskAdded = true;
+                    }
+                }
+                if (!hasTaskAdded) {
+                    throw new GradleException("Missing the `apiToken` configuration? " +
+                            "\nYou have ${target.android.productFlavors.size()} productFlavors, " +
+                            "please try to add `apiTokens` to fir DSL, for example: \n" +
+                            "\nfir {\n" +
+                            "\n    apiTokens Develop: \"your_api_token\"" +
+                            "\n}")
+                }
+            } else {
+                injectFirTask(target, "", fir)
+            }
+        }
+    }
+
+    boolean injectFirTask(Project project, String name, FirPluginExtension config) {
+        String key = name == "" ? "main" : name;
+        String token = config.apiTokens.get(key)
+        if (token == null) {
+            return false;
         }
 
-        def firIcon = target.tasks.create(name: "firIcon") << {
-            def fir = target.fir
-            if (fir.icon == null || !new File(fir.icon).exists()) {
-                throw new FileNotFoundException("The icon [$fir.icon] was not exists!")
-            }
-            // 上传图标
-            uploadIcon(cert.cert.icon, fir.icon, config)
-        }
-
-        def firApk = target.tasks.create(name: "firApk") << {
-            def fir = target.fir
-            // 获取要上传的APK
-            def apk = getApkFile(fir.flavor, target)
-            if (apk == null) {
-                throw new FileNotFoundException("The apk [$apk] was not found!")
+        def firTask = project.tasks.create(name: "fir${name}") << {
+            if (config.bundleId == null) {
+                throw new ProjectConfigurationException("Please config bundleId in fir DSL")
             }
 
-            if (fir.appName == null) {
+            if (config.appName == null) {
                 throw new ProjectConfigurationException("Please config fir.appName")
             }
 
-            String changeLog = fir.changeLog == null ? "" : fir.changeLog
-            if (uploadApk(cert.cert.binary, apk, fir.appName, config, changeLog)) {
+            def cert = getCert(config.bundleId, token)
+
+            if (config.icon == null || !new File(config.icon).exists()) {
+                System.err.println "The icon [$config.icon] was not exists, skip upload icon!"
+            } else {
+                def firIconResult = uploadIcon(cert.cert.icon, config.icon)
+                if (!firIconResult) {
+                    System.err.println "upload ${name} icon failed."
+                }
+            }
+
+            // 获取要上传的APK
+            def apk = getApkFile(name, project)
+            if (apk == null) {
+                throw new FileNotFoundException("The apk was not found!")
+            }
+
+            String changeLog = config.changeLog == null ? "" : config.changeLog
+            if (uploadApk(cert.cert.binary, apk, config.appName, project.android.defaultConfig, changeLog)) {
                 println "Publish apk Successful ^_^"
             } else {
-                println "Publish apk Failed!!"
+                System.err.println "Publish apk Failed!"
             }
         }
 
-        def firAll = target.tasks.create(name: "firAll") {}
-
-        target.afterEvaluate {
-            String taskName = "assemble${target.fir.flavor}Release"
-            firCert.dependsOn taskName
-            firIcon.dependsOn firCert
-            firApk.dependsOn firCert
-            firAll.dependsOn firIcon, firApk
-        }
+        project.tasks.getByPath("assemble${name}Release").dependsOn firTask
+        firTask.dependsOn project.tasks.getByPath("package${name}Release")
+        return true
     }
 
     static Object getCert(String bundleId, String apiToken) {
@@ -92,7 +117,7 @@ class FirPlugin implements Plugin<Project> {
         return apk
     }
 
-    static boolean uploadIcon(def cert, def iconPath, def config) {
+    static boolean uploadIcon(def cert, def iconPath) {
         def params = [
                 "key"  : cert.key,
                 "token": cert.token,
@@ -141,21 +166,30 @@ class FirPlugin implements Plugin<Project> {
 
 class FirPluginExtension {
     String bundleId
-    String apiToken
     String icon
-    String flavor = ""
     String appName
     String changeLog
+    boolean upload = false
+
+    Map<String, String> apiTokens;
 
     void changeLog(File file) {
         if (file != null && file.exists()) {
             changeLog = file.text
         } else {
-            println "changeLog [$file] was null or not exist"
+            println "changeLog [$file] was null or not exists"
         }
     }
 
     void changeLog(String log) {
         changeLog = log
     }
+
+    public void apiToken(String apiToken) {
+        if (apiTokens == null) {
+            apiTokens = new HashMap<>()
+        }
+        apiTokens.put("main", apiToken)
+    }
 }
+
