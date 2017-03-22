@@ -32,7 +32,7 @@ class FirPlugin implements Plugin<Project> {
             if (target.android.productFlavors.size() > 0) {
                 boolean hasTaskAdded = false;
                 target.android.productFlavors.each {
-                    if (injectFirTask(target, it.name, fir)) {
+                    if (injectFirTask(target, it, fir)) {
                         hasTaskAdded = true;
                     }
                 }
@@ -45,18 +45,31 @@ class FirPlugin implements Plugin<Project> {
                             "\n}")
                 }
             } else {
-                injectFirTask(target, "", fir)
+                injectFirTask(target, null, fir)
             }
         }
     }
 
-    boolean injectFirTask(Project project, String name, FirPluginExtension config) {
-        String key = name == "" ? "main" : name;
+    boolean injectFirTask(Project project, def productFlavor, FirPluginExtension config) {
+        String name;
+        String versionName;
+        int versionCode;
+        String key;
+        if (productFlavor == null) {
+            name = ""
+            versionName = project.android.defaultConfig.versionName
+            versionCode = project.android.defaultConfig.versionCode
+            key = "main"
+        } else {
+            name = productFlavor.name
+            versionName = productFlavor.versionName ?: project.android.defaultConfig.versionName
+            versionCode = productFlavor.versionCode ?: project.android.defaultConfig.versionCode
+            key = name
+        }
         String token = config.apiTokens.get(key)
         if (token == null) {
             return false;
         }
-
         def firTask = project.tasks.create(name: "fir${name}") << {
             if (config.bundleId == null) {
                 throw new ProjectConfigurationException("Please config bundleId in fir DSL")
@@ -84,7 +97,7 @@ class FirPlugin implements Plugin<Project> {
             }
 
             String changeLog = config.changeLog == null ? "" : config.changeLog
-            if (uploadApk(cert.cert.binary, apk, config.appName, project.android.defaultConfig, changeLog)) {
+            if (uploadApk(cert.cert.binary, apk, config.appName, versionName, versionCode, changeLog)) {
                 println "Publish apk Successful ^_^"
             } else {
                 System.err.println "Publish apk Failed!"
@@ -127,13 +140,14 @@ class FirPlugin implements Plugin<Project> {
         return new JsonSlurper().parseText(response).is_completed
     }
 
-    static boolean uploadApk(def cert, def apkPath, def name, def config, def changeLog) {
+    static boolean uploadApk(
+            def cert, def apkPath, def name, String versionName, def versionCode, def changeLog) {
         def params = [key          : cert.key,
                       token        : cert.token,
                       file         : new File(apkPath),
                       "x:name"     : name,
-                      "x:version"  : config.versionName,
-                      "x:build"    : config.versionCode,
+                      "x:version"  : versionName,
+                      "x:build"    : versionCode,
                       "x:changelog": changeLog
         ]
         String response = uploadFile(cert.upload_url, params)
