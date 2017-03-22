@@ -18,7 +18,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.githang:fir:0.2'
+        classpath 'com.githang:fir:0.2.1'
     }
 }
 ```
