@@ -1,3 +1,5 @@
+[ ![Download](https://api.bintray.com/packages/msdx/maven/FirPublisher/images/download.svg) ](https://bintray.com/msdx/maven/FirPublisher/_latestVersion) 
+ 
 Fir Publisher
 ===
 
@@ -18,7 +20,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.githang:fir:0.2.1'
+        classpath 'com.githang:fir:0.3'
     }
 }
 ```
@@ -30,7 +32,6 @@ apply plugin: 'fir'
 
 fir {
     apiToken //fir.im上的apitoken
-    bundleId android.defaultConfig.applicationId
     appName 你的应用名称
     icon 应用图标路径
     changeLog "更新日志" // 或者file("日志文件路径")
@@ -45,7 +46,6 @@ fir {
 fir {
     apiTokens([flavor1: "your api token1",
                flavor2: "your api token2"])
-    bundleId android.defaultConfig.applicationId
     appName 你的应用名称
     icon 应用图标路径
     changeLog "更新日志" // 或者file("日志文件路径")
