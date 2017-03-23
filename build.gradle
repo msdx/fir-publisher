@@ -21,6 +21,7 @@ dependencies {
     compile localGroovy()
     compile 'org.apache.httpcomponents:httpcore:4.2.2'
     compile 'org.apache.httpcomponents:httpclient:4.2.2'
+    compile 'com.android.tools.build:gradle:2.3.0'
 }
 
 // this script was used to upload files to bintray.
