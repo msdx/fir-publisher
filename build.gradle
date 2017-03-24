@@ -16,12 +16,21 @@ repositories {
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
+configurations {
+    providedCompile
+}
+
+sourceSets.main.compileClasspath += configurations.providedCompile
+sourceSets.main.runtimeClasspath += configurations.providedCompile
+sourceSets.test.compileClasspath += configurations.providedCompile
+sourceSets.test.runtimeClasspath += configurations.providedCompile
+
 dependencies {
     compile gradleApi()
     compile localGroovy()
     compile 'org.apache.httpcomponents:httpcore:4.2.2'
     compile 'org.apache.httpcomponents:httpclient:4.2.2'
-    compile 'com.android.tools.build:gradle:2.3.0'
+    providedCompile 'com.android.tools.build:gradle:2.3.0'
 }
 
 // this script was used to upload files to bintray.
