@@ -20,7 +20,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.githang:fir:0.3'
+        classpath 'com.githang:fir:0.4'
     }
 }
 ```
@@ -32,8 +32,6 @@ apply plugin: 'fir'
 
 fir {
     apiToken //fir.im上的apitoken
-    appName 你的应用名称
-    icon 应用图标路径
     changeLog "更新日志" // 或者file("日志文件路径")
     upload true
 }
@@ -46,8 +44,6 @@ fir {
 fir {
     apiTokens([flavor1: "your api token1",
                flavor2: "your api token2"])
-    appName 你的应用名称
-    icon 应用图标路径
     changeLog "更新日志" // 或者file("日志文件路径")
     upload true
 }
