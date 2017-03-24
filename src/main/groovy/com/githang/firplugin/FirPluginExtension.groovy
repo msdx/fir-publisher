@@ -1,8 +1,6 @@
 package com.githang.firplugin
 
 class FirPluginExtension {
-    String icon = ""
-    String appName = ""
     String changeLog = ""
     boolean upload = false
 
