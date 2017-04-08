@@ -48,7 +48,7 @@ class FirPlugin implements Plugin<Project> {
         int versionCode = variant.mergedFlavor.versionCode
         String bundleId = variant.mergedFlavor.applicationId
         String changeLog = config.changeLog
-        String token = config.apiTokens[name]
+        String token = config.apiTokens[name == "" ? "main" : name]
 
         if (token == null) {
             println "Could not found token for the flavor [${name}], skip."
