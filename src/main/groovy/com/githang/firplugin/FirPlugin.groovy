@@ -2,6 +2,7 @@ package com.githang.firplugin
 
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.api.BaseVariantOutput
+import com.android.builder.model.ProductFlavor
 import groovy.io.FileType
 import groovy.json.JsonSlurper
 import org.apache.http.HttpResponse
@@ -43,10 +44,11 @@ class FirPlugin implements Plugin<Project> {
     }
 
     void injectFirTask(Project project, ApplicationVariant variant, FirPluginExtension config) {
+        ProductFlavor mergedFlavor = variant.mergedFlavor
         String name = variant.flavorName
-        String versionName = variant.mergedFlavor.versionName
-        int versionCode = variant.mergedFlavor.versionCode
-        String bundleId = variant.mergedFlavor.applicationId
+        String versionName = mergedFlavor.versionName + (mergedFlavor.versionNameSuffix ? mergedFlavor.versionNameSuffix : "")
+        int versionCode = mergedFlavor.versionCode
+        String bundleId = mergedFlavor.applicationId
         String changeLog = config.changeLog
         String token = config.apiTokens[name == "" ? "main" : name]
 
