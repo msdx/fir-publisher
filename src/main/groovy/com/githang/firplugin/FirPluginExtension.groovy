@@ -3,6 +3,7 @@ package com.githang.firplugin
 class FirPluginExtension {
     String changeLog = ""
     boolean upload = false
+    String version = null
 
     Map<String, String> apiTokens;
 

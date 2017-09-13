@@ -20,7 +20,9 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.githang:fir:0.4.1'
+        classpath 'com.githang:fir:0.4.3'
+        // android build plugin 3.0以上版本请使用0.5
+        //classpath 'com.githang:fir:0.5'
     }
 }
 ```

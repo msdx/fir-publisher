@@ -13,19 +13,23 @@ import org.apache.http.impl.client.DefaultHttpClient
 import org.apache.http.util.EntityUtils
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.ProjectConfigurationException
+import org.gradle.api.logging.LogLevel
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 
 class FirPlugin implements Plugin<Project> {
+    private static final Logger LOG = Logging.getLogger(FirPlugin.class)
 
     @Override
     void apply(Project project) {
+        LOG.isEnabled(LogLevel.DEBUG)
         project.extensions.create("fir", FirPluginExtension)
 
         project.afterEvaluate {
             FirPluginExtension fir = project.extensions.findByName("fir") as FirPluginExtension
 
             if (!fir.upload) {
-                println "fir.upload is false, skip."
+                LOG.debug "fir.upload is false, skip."
                 return
             }
 
@@ -46,14 +50,19 @@ class FirPlugin implements Plugin<Project> {
     void injectFirTask(Project project, ApplicationVariant variant, FirPluginExtension config) {
         ProductFlavor mergedFlavor = variant.mergedFlavor
         String name = variant.flavorName
-        String versionName = mergedFlavor.versionName + (mergedFlavor.versionNameSuffix ? mergedFlavor.versionNameSuffix : "")
+        String versionName
+        if (config.version) {
+            versionName = config.version
+        } else {
+            versionName = mergedFlavor.versionName + (mergedFlavor.versionNameSuffix ? mergedFlavor.versionNameSuffix : "")
+        }
         int versionCode = mergedFlavor.versionCode
         String bundleId = mergedFlavor.applicationId
         String changeLog = config.changeLog
         String token = config.apiTokens[name == "" ? "main" : name]
 
         if (token == null) {
-            println "Could not found token for the flavor [${name}], skip."
+            LOG.debug "Could not found token for the flavor [${name}], skip."
             return
         }
 
@@ -61,25 +70,26 @@ class FirPlugin implements Plugin<Project> {
             def cert = getCert(bundleId, token)
 
             BaseVariantOutput output = variant.outputs.last()
-            File manifestFile = output.processManifest.manifestOutputFile
-            File resDir = output.processResources.resDir
+            File manifestFile = new File(output.processManifest.manifestOutputDirectory, "AndroidManifest.xml")
+            File resDir = variant.mergeResources.mergedNotCompiledResourcesOutputDirectory
             def manifestXml = new XmlSlurper().parse(manifestFile)
 
             def iconFile = getIconFile(resDir, manifestXml)
+            LOG.debug("icon path is {}", iconFile.path)
             def firIconResult = uploadIcon(cert.cert.icon, iconFile)
             if (!firIconResult) {
-                System.err.println "Upload ${name} icon [${iconFile}] failed."
+                LOG.error "Upload ${name} icon [${iconFile}] failed."
             }
 
             def appName = getAppName(resDir, manifestXml)
 
             // 获取要上传的APK
             File apk = variant.outputs.last().outputFile
-
+            LOG.debug("The apk file path is: {}", apk.path)
             if (uploadApk(cert.cert.binary, apk, appName, versionName, versionCode, changeLog)) {
-                println "Publish apk Successful ^_^"
+                LOG.debug "Publish apk Successful ^_^"
             } else {
-                System.err.println "Publish apk Failed!"
+                LOG.error "Publish apk Failed!"
             }
         }
 
@@ -101,7 +111,7 @@ class FirPlugin implements Plugin<Project> {
         def (type, iconName) = iconValue?.split('/')
 
         File iconFile
-        int xCount = 0;
+        int xCount = 0
         resDir.eachDirMatch(~"^${type}.*") { dir ->
             dir.eachFileMatch(FileType.FILES, ~"${iconName}.*") { file ->
                 int currentXCount = dir.name.count('x')
