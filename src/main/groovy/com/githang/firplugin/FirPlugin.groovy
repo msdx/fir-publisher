@@ -37,12 +37,10 @@ class FirPlugin implements Plugin<Project> {
                 throw new RuntimeException("FirPlugin can only be applied for android application module.")
             }
 
-            project.android.applicationVariants.each { variant ->
-                if ("debug".equalsIgnoreCase(variant.buildType.name)) {
-                    return
+            project.android.applicationVariants.all { variant ->
+                if ("release".equalsIgnoreCase(variant.buildType.name)) {
+                    injectFirTask(project, variant, fir)
                 }
-
-                injectFirTask(project, variant, fir)
             }
         }
     }
@@ -72,12 +70,14 @@ class FirPlugin implements Plugin<Project> {
             BaseVariantOutput output = variant.outputs.last()
             File manifestFile = new File(output.processManifest.manifestOutputDirectory, "AndroidManifest.xml")
             File resDir = variant.mergeResources.mergedNotCompiledResourcesOutputDirectory
+            if (resDir == null) {
+                resDir = findDefaultDir(variant)
+            }
+
             def manifestXml = new XmlSlurper().parse(manifestFile)
 
             def iconFile = getIconFile(resDir, manifestXml)
-            LOG.debug("icon path is {}", iconFile.path)
-            def firIconResult = uploadIcon(cert.cert.icon, iconFile)
-            if (!firIconResult) {
+            if (iconFile == null || !uploadIcon(cert.cert.icon, iconFile)) {
                 LOG.error "Upload ${name} icon [${iconFile}] failed."
             }
 
@@ -97,6 +97,17 @@ class FirPlugin implements Plugin<Project> {
         firTask.dependsOn project.tasks.getByPath("package${name}Release")
     }
 
+    static File findDefaultDir(ApplicationVariant variant) {
+        def file = null
+        variant.mergeResources.sourceFolderInputs.each {
+            if (it.exists()) {
+                file = it
+                return
+            }
+        }
+        return file
+    }
+
     static Object getCert(String bundleId, String apiToken) {
         HttpClient client = new DefaultHttpClient()
         HttpPost post = new HttpPost('http://api.fir.im/apps')
@@ -107,6 +118,9 @@ class FirPlugin implements Plugin<Project> {
     }
 
     static File getIconFile(File resDir, def manifestXml) {
+        if (resDir == null) {
+            return null
+        }
         def iconValue = manifestXml?.application?.@'android:icon'?.text() - '@'
         def (type, iconName) = iconValue?.split('/')
 
@@ -126,8 +140,17 @@ class FirPlugin implements Plugin<Project> {
     }
 
     static String getAppName(File resDir, def manifestXml) {
+        if (resDir == null) {
+            return null
+        }
         def labelValue = manifestXml?.application?.@'android:label'?.text() - '@string/'
         File valuesFile = new File(resDir, 'values/values.xml')
+        if (!valuesFile.exists()) {
+            valuesFile = new File(resDir, 'values/strings.xml')
+        }
+        if (!valuesFile.exists()) {
+            return null
+        }
         def values = new XmlSlurper().parse(valuesFile)
         return values.depthFirst().findAll({
             it.name() == 'string' && it.@'name'?.text() == labelValue
