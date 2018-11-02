@@ -1,10 +1,11 @@
 package com.githang.firplugin
 
+import com.android.build.gradle.api.ApkVariantOutput
 import com.android.build.gradle.api.ApplicationVariant
-import com.android.build.gradle.api.BaseVariantOutput
 import com.android.builder.model.ProductFlavor
-import groovy.io.FileType
 import groovy.json.JsonSlurper
+import net.dongliu.apk.parser.ApkParser
+import net.dongliu.apk.parser.bean.Icon
 import org.apache.http.HttpResponse
 import org.apache.http.client.HttpClient
 import org.apache.http.client.methods.HttpPost
@@ -67,24 +68,17 @@ class FirPlugin implements Plugin<Project> {
         def firTask = project.tasks.create(name: "fir${name}") << {
             def cert = getCert(bundleId, token)
 
-            BaseVariantOutput output = variant.outputs.last()
-            File manifestFile = new File(output.processManifest.manifestOutputDirectory, "AndroidManifest.xml")
-            File resDir = variant.mergeResources.mergedNotCompiledResourcesOutputDirectory
-            if (resDir == null) {
-                resDir = findDefaultDir(variant)
-            }
-
-            def manifestXml = new XmlSlurper().parse(manifestFile)
-
-            def iconFile = getIconFile(resDir, manifestXml)
+            // 获取要上传的APK
+            File apk = variant.outputs
+                    .find { variantOutput -> variantOutput instanceof ApkVariantOutput }
+                    .outputFile
+            ApkParser apkParser = new ApkParser(apk.absolutePath)
+            Icon icon = apkParser.getIconFile()
+            String appName = apkParser.apkMeta.name
+            File iconFile = saveIconFile(icon.data, apk.parent, icon.path.split("/").last())
             if (iconFile == null || !uploadIcon(cert.cert.icon, iconFile)) {
                 LOG.error "Upload ${name} icon [${iconFile}] failed."
             }
-
-            def appName = getAppName(resDir, manifestXml)
-
-            // 获取要上传的APK
-            File apk = variant.outputs.last().outputFile
             LOG.debug("The apk file path is: {}", apk.path)
             if (uploadApk(cert.cert.binary, apk, appName, versionName, versionCode, changeLog)) {
                 LOG.debug "Publish apk Successful ^_^"
@@ -97,17 +91,6 @@ class FirPlugin implements Plugin<Project> {
         firTask.dependsOn project.tasks.getByPath("package${name}Release")
     }
 
-    static File findDefaultDir(ApplicationVariant variant) {
-        def file = null
-        variant.mergeResources.sourceFolderInputs.each {
-            if (it.exists()) {
-                file = it
-                return
-            }
-        }
-        return file
-    }
-
     static Object getCert(String bundleId, String apiToken) {
         HttpClient client = new DefaultHttpClient()
         HttpPost post = new HttpPost('http://api.fir.im/apps')
@@ -117,44 +100,17 @@ class FirPlugin implements Plugin<Project> {
         return new JsonSlurper().parseText(EntityUtils.toString(response.entity))
     }
 
-    static File getIconFile(File resDir, def manifestXml) {
-        if (resDir == null) {
+    static File saveIconFile(byte[] bytes, String path, String name) {
+        try {
+            File file = new File("$path/$name")
+            FileOutputStream fos = new FileOutputStream(file)
+            fos.write(bytes)
+            fos.close()
+            return file
+        } catch (IOException e) {
+            e.printStackTrace()
             return null
         }
-        def iconValue = manifestXml?.application?.@'android:icon'?.text() - '@'
-        def (type, iconName) = iconValue?.split('/')
-
-        File iconFile
-        int xCount = 0
-        resDir.eachDirMatch(~"^${type}.*") { dir ->
-            dir.eachFileMatch(FileType.FILES, ~"${iconName}.*") { file ->
-                int currentXCount = dir.name.count('x')
-                if (currentXCount < xCount) {
-                    return
-                }
-                xCount = currentXCount
-                iconFile = file
-            }
-        }
-        return iconFile
-    }
-
-    static String getAppName(File resDir, def manifestXml) {
-        if (resDir == null) {
-            return null
-        }
-        def labelValue = manifestXml?.application?.@'android:label'?.text() - '@string/'
-        File valuesFile = new File(resDir, 'values/values.xml')
-        if (!valuesFile.exists()) {
-            valuesFile = new File(resDir, 'values/strings.xml')
-        }
-        if (!valuesFile.exists()) {
-            return null
-        }
-        def values = new XmlSlurper().parse(valuesFile)
-        return values.depthFirst().findAll({
-            it.name() == 'string' && it.@'name'?.text() == labelValue
-        })?.first()
     }
 
     static boolean uploadIcon(def cert, File iconFile) {
@@ -199,8 +155,8 @@ class FirPlugin implements Plugin<Project> {
         if (fileKey && fileValue) {
             entity.addPart(fileKey, fileValue, true)
         }
-        post.setEntity(entity);
-        HttpResponse response = client.execute(post);
+        post.setEntity(entity)
+        HttpResponse response = client.execute(post)
         return EntityUtils.toString(response.entity)
     }
 }

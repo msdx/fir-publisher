@@ -26,6 +26,7 @@ dependencies {
     compile localGroovy()
     compile 'org.apache.httpcomponents:httpcore:4.2.2'
     compile 'org.apache.httpcomponents:httpclient:4.2.2'
+    compile 'net.dongliu:apk-parser:2.1.6'
     compileOnly 'com.android.tools.build:gradle:3.0.0-beta5'
 }
 
