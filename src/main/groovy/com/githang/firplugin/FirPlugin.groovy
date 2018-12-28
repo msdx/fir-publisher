@@ -73,7 +73,8 @@ class FirPlugin implements Plugin<Project> {
                     .find { variantOutput -> variantOutput instanceof ApkVariantOutput }
                     .outputFile
             ApkParser apkParser = new ApkParser(apk.absolutePath)
-            Icon icon = apkParser.getIconFile()
+            List<Icon> iconList = apkParser.getIconFiles()
+            Icon icon = iconList.sort { it.data.length }.last()
             String appName = apkParser.apkMeta.name
             File iconFile = saveIconFile(icon.data, apk.parent, icon.path.split("/").last())
             if (iconFile == null || !uploadIcon(cert.cert.icon, iconFile)) {

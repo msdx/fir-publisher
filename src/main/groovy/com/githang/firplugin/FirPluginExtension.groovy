@@ -5,7 +5,7 @@ class FirPluginExtension {
     boolean upload = false
     String version = null
 
-    Map<String, String> apiTokens;
+    Map<String, String> apiTokens
 
     void changeLog(File file) {
         if (file != null && file.exists()) {
@@ -19,7 +19,7 @@ class FirPluginExtension {
         changeLog = log
     }
 
-    public void apiToken(String apiToken) {
+    void apiToken(String apiToken) {
         if (apiTokens == null) {
             apiTokens = new HashMap<>()
         }
