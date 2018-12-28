@@ -14,22 +14,20 @@ Fir Publisher
 ## 使用
 
 先在项目根目录的build.gradle中加入以下代码：
-```
+```groovy
 buildscript {
     repositories {
         jcenter()
     }
     dependencies {
-        classpath 'com.githang:fir:0.4.3'
-        // android build plugin 3.0以上版本请使用0.5
-        //classpath 'com.githang:fir:0.5'
+        classpath 'com.githang:fir:0.6.1' // android build plugin 3.0以下版本请使用0.4.3
     }
 }
 ```
 
 然后在app的build.gradle中加入：
 
-```
+```groovy
 apply plugin: 'fir'
 
 fir {
@@ -42,7 +40,7 @@ fir {
 
 ### 多productFlavor发布
 
-```
+```groovy
 fir {
     apiTokens([flavor1: "your api token1",
                flavor2: "your api token2"])
@@ -51,6 +49,19 @@ fir {
 }
 
 ```
+
+## 上传
+
+```shell
+./gradlew assembleRelease
+```
+
+或
+
+```shell
+./gradlew firFlavorName
+```
+
 ## 捐赠支持
 
 如果你觉得 fir-publisher 对你有所帮助, 欢迎微信打赏支持作者:smile:
