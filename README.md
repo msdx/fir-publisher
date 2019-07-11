@@ -66,4 +66,4 @@ fir {
 
 如果你觉得 fir-publisher 对你有所帮助, 欢迎微信打赏支持作者:smile:
 
-![](http://7xpdix.com1.z0.glb.clouddn.com/wechat.png)
+![](http://disk.githang.com/wechat.png)
